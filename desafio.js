@@ -107,4 +107,4 @@ exports.buildCardinalityMap = buildCardinalityMap;
 exports.replaceFact = replaceFact;
 exports.validFacts = validFacts;
 
-console.log(validFacts(facts, schema))
+//console.log(validFacts(facts, schema))
