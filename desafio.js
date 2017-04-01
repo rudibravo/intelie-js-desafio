@@ -70,41 +70,43 @@ function buildCardinalityMap(schema) {
     return schemaMap
 }
 
-function replaceFact(fact, currentFacts) {
-    for (var i = 0; i < currentFacts.length; i++) {
-        var [entity, attribute, ,] = fact;
-        var [currEntity, currAttribute, ,] = currentFacts[i];
-        if (currEntity == entity && currAttribute == attribute) {
-            currentFacts.splice(i, 1);
-            break;
+
+function validFactsForMapping(facts, schemaMapping) {
+    var oneToManyFacts = new Array();
+    var oneToOneFacts = {};
+    for (var i = 0; i < facts.length; i++) {
+        var [entity, attribute, , valid] = facts[i];
+        if (!valid) 
+            continue;
+        switch (schemaMapping[attribute]) {
+            case 'one':
+                if (!oneToOneFacts[entity]) {
+                    oneToOneFacts[entity] = {};
+                }
+                oneToOneFacts[entity][attribute] = facts[i];
+                break;
+            case 'many':
+                oneToManyFacts.push(facts[i]);
+                break;
+            default:
+                console.error('Unkonwn cardinality for atribute "%s"', attribute);
         }
     }
-    currentFacts.push(fact);
-    return currentFacts;
+    return [oneToManyFacts, oneToOneFacts];
 }
 
 function validFacts(facts, schema) {
-    var resultingFacts = new Array();
     var schemaMapping = buildCardinalityMap(schema);
-    for (var i = 0; i < facts.length; i++) {
-        var [, attribute, , valid] = facts[i];
-        if (!valid) 
-            continue;
-        if (schemaMapping[attribute] == 'one') {
-            resultingFacts = replaceFact(facts[i], resultingFacts)
-        } else if (schemaMapping[attribute] == 'many') {
-            resultingFacts.push(facts[i]);
-        } else {
-            console.error('Unkonwn cardinality for atribute "%s"', attribute)
+    var [resultingFacts, oneToOneFacts] = validFactsForMapping(facts, schemaMapping);
+    for (var entity in oneToOneFacts) {
+        for (var attribute in oneToOneFacts[entity]) {
+            resultingFacts.push(oneToOneFacts[entity][attribute]);
         }
-        
     }
     return resultingFacts;
 }
 
-
 exports.buildCardinalityMap = buildCardinalityMap;
-exports.replaceFact = replaceFact;
 exports.validFacts = validFacts;
 
 //console.log(validFacts(facts, schema))
